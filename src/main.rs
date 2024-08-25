@@ -13,7 +13,7 @@ fn main() {
     ui.vertical(|ui| {
       to_do_list(ui, &to_dos);
       ui.separator();
-      to_do_text_edit(ui, |text| {});
+      to_do_text_edit(ui, |_text| {});
     })
   });
 }

@@ -14,7 +14,7 @@ pub struct InMemoryToDoRepository<'r> {
 
 impl<'r> InMemoryToDoRepository<'r> {
   /// Creates an in-memory repository for to-dos.
-  pub fn new() -> InMemoryToDoRepository<'r> {
+  pub fn _new() -> InMemoryToDoRepository<'r> {
     return Self {
       broadcast: SimpleBroadcast::new(),
       to_dos: vec![]
@@ -23,16 +23,16 @@ impl<'r> InMemoryToDoRepository<'r> {
 }
 
 impl<'r> ToDoRepository<'r> for InMemoryToDoRepository<'r> {
-  fn get(&self) -> &SimpleBroadcast<'r, Vec<ToDo<'r>>> {
-    return &self.broadcast;
+  fn _get(&self) -> &SimpleBroadcast<'r, Vec<ToDo<'r>>> {
+    &self.broadcast
   }
 
-  async fn add(&mut self, to_do: ToDo<'r>) {
+  async fn _add(&mut self, to_do: ToDo<'r>) {
     self.to_dos.push(to_do);
     self.broadcast.send(self.to_dos.clone());
   }
 
-  async fn remove(&mut self, id: Uuid) {
+  async fn _remove(&mut self, id: Uuid) {
     self.to_dos.retain(|to_do| to_do.id != id);
     self.broadcast.send(self.to_dos.clone());
   }
@@ -56,60 +56,57 @@ mod tests {
   };
 
   #[tokio::test]
-  async fn is_initially_empty<'a>() {
-    let got_to_dos = get(InMemoryToDoRepository::new().broadcast.clone(), || {
+  async fn is_initially_empty() {
+    let got_to_dos = get(InMemoryToDoRepository::_new().broadcast.clone(), || {
       async {}.into_future()
     })
     .await;
-    assert_eq!(Vec::<ToDo<'a>>::new(), got_to_dos);
+    assert_eq!(Vec::<ToDo<'_>>::with_capacity(0), got_to_dos);
   }
 
   #[tokio::test]
-  async fn gets<'a>() {
-    let mut repository = InMemoryToDoRepository::new();
+  async fn gets() {
+    let mut repository = InMemoryToDoRepository::_new();
     let to_do = ToDo {
       id: Uuid::new_v4(),
       title: "Study",
       is_done: false
     };
-    let got_to_dos = get(repository.broadcast.clone(), || {
-      repository.add(to_do.clone())
-    })
-    .await;
+    let got_to_dos = get(repository.broadcast.clone(), || repository._add(to_do)).await;
     assert_eq!(vec![to_do], got_to_dos);
   }
 
   #[tokio::test]
-  async fn adds<'a>() {
-    let mut repository = InMemoryToDoRepository::new();
+  async fn adds() {
+    let mut repository = InMemoryToDoRepository::_new();
     let added_to_do = ToDo {
       id: Uuid::new_v4(),
       title: "Clean room",
       is_done: false
     };
     let got_to_dos = get(repository.broadcast.clone(), || {
-      repository.add(added_to_do.clone())
+      repository._add(added_to_do)
     })
     .await;
     assert_eq!(vec![added_to_do], got_to_dos);
   }
 
   #[tokio::test]
-  async fn removes<'a>() {
-    let mut repository = InMemoryToDoRepository::new();
+  async fn removes() {
+    let mut repository = InMemoryToDoRepository::_new();
     let removed_to_do_id = Uuid::new_v4();
     repository
-      .add(ToDo {
+      ._add(ToDo {
         id: removed_to_do_id,
         title: "Wash dishes",
         is_done: true
       })
       .await;
     let got_to_dos = get(repository.broadcast.clone(), || {
-      repository.remove(removed_to_do_id)
+      repository._remove(removed_to_do_id)
     })
     .await;
-    assert_eq!(Vec::<ToDo<'a>>::with_capacity(0), got_to_dos);
+    assert_eq!(Vec::<ToDo<'_>>::with_capacity(0), got_to_dos);
   }
 
   /// Executes the given action and then returns the to-dos that were broadcasted as a result.
@@ -121,7 +118,7 @@ mod tests {
     let to_dos = Rc::new(RefCell::new(Vec::<ToDo<'a>>::with_capacity(0)));
     replace_with_lastly_broadcasted_to_dos(broadcast, to_dos.clone());
     action().await;
-    return to_dos.clone().take();
+    to_dos.clone().take()
   }
 
   /// Attaches an observer to the broadcast that replaces destination's current to-dos by the lastly
